@@ -12,6 +12,8 @@ Select Output Reduced Image to save a png file that looks the way it will on the
 
 Choose an option for Scale Preview.  This affects only the display on the GUI when processing.
 
+Select Choose Palette Order to bring up a new popup during processing that allows you to change the order of the palette.
+
 Click Process and Save to save the header file and other image ouputs if the options are selected.
 
 All saved files have the same base name as the input image.

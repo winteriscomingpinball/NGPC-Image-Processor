@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import ttk
+from tkinter import messagebox
 import os
+import sys
 
 from PIL import Image, ImageTk
 
@@ -67,7 +69,79 @@ def process_image_tile_by_tile(img,palLookup):
                     
     return pixelOutput
    
+# def reorderPalDict(layerColorPalDict):
+    # def save():
+        # # process the data and modify the dictionary
+        # nonlocal layerColorPalDict, root, valid
+        # for key in pal_dict:
+            # val = int(pal_dict[key].get())
+            # if val in used_values:
+                # messagebox.showerror("Error", "Duplicate value selected")
+                # valid = False
+                # break
+            # used_values.add(val)
+            # layerColorPalDict[key] = val
+        # root.destroy()
+
+    # root = tk.Toplevel()
+    # root.title("Reorder Palette")
+
+    # pal_dict = {}
+    # used_values = set()
+    # for i, key in enumerate(layerColorPalDict.keys()):
+        # tk.Label(root, text=str(key)).grid(row=i, column=0, padx=5, pady=5)
+        # pal_dict[key] = tk.StringVar(value=layerColorPalDict[key])
+        # tk.ttk.Combobox(root, values=[1, 2, 3], textvariable=pal_dict[key]).grid(row=i, column=1, padx=5, pady=5)
+
+    # valid = True
+    # tk.Button(root, text="Save", command=save).grid(row=len(layerColorPalDict), columnspan=2, padx=5, pady=5)
+
+    # root.wait_window()
+
+    # if valid:
+        # return layerColorPalDict
+    # else:
+        # return None
+
+
+def reorderPalDict(layerColorPalDict):
+    root = tk.Tk()
+    root.geometry("300x150")
+    root.title("Reorder Palette Dictionary")
     
+    def save():
+        # Get new values from comboboxes
+        new_values = [int(c.get()) for c in comboboxes]
+        
+        # Check for duplicate values
+        if len(set(new_values)) < len(new_values):
+            messagebox.showerror("Error", "Duplicate value selected")
+        else:
+            # Update dictionary with new values
+            for i, key in enumerate(keys):
+                layerColorPalDict[key] = new_values[i]
+            root.destroy()
+    
+    # Create comboboxes for each key
+    keys = list(layerColorPalDict.keys())
+    comboboxes = []
+    for i, key in enumerate(keys):
+        label = ttk.Label(root, text=str(key))
+        label.grid(column=0, row=i, padx=5, pady=5)
+        c = ttk.Combobox(root, values=[1, 2, 3], state="readonly")
+        c.current(layerColorPalDict[key]-1)
+        c.grid(column=1, row=i, padx=5, pady=5)
+        comboboxes.append(c)
+    
+    # Create save button
+    save_button = ttk.Button(root, text="Save", command=save)
+    save_button.grid(column=0, row=len(keys), columnspan=2, pady=10)
+    
+    # Run event loop until window is closed
+    root.wait_window()
+    
+    print("The updated dictionary is being returned")
+    return layerColorPalDict
 
 def pixelPack(pixelList):
     u16 = 0
@@ -128,7 +202,7 @@ def outputToC(fullName,baseName, layerCount, tileWidth, tileHeight, layerPixels,
             file.write("};\n")
             
             
-def process_the_data(img, filename, layerInput, outputLayerImages, outputReducedImage):
+def process_the_data(img, filename, layerInput, outputLayerImages, outputReducedImage, choosePalOrder):
 
     #img = Image.open(filename).convert("RGBA")
     base_name_full = filename.split(".")[0]
@@ -267,7 +341,15 @@ def process_the_data(img, filename, layerInput, outputLayerImages, outputReduced
             
             counter+=1
         #print("This is the palMap: " + str(palMap))
-        #print ("This is the Dictionary..." + str(layerColorPalDict))
+        #print ("This is the pal Dictionary..." + str(layerColorPalDict))
+        
+        if (choosePalOrder):
+            print ("This is the pal Dictionary before changes..." + str(layerColorPalDict))
+            
+            layerColorPalDict=reorderPalDict(layerColorPalDict)
+            print ("This is the pal Dictionary after changes..." + str(layerColorPalDict))
+            
+        
         layerPals.append(palMap)
         
         processedPixels=process_image_tile_by_tile(layer, layerColorPalDict)
@@ -306,8 +388,11 @@ def process_the_data(img, filename, layerInput, outputLayerImages, outputReduced
 
 
     outputToC(base_name_full, base_name, layerInput, int(width/8), int(height/8), layerPixels, layerPals)
-
+    
+    
     return img
+    
+
 
 class GUI:
     def __init__(self, root):
@@ -360,10 +445,17 @@ class GUI:
         self.scale_dropdown.set(1)
         #self.scale_dropdown.pack()
         self.scale_dropdown.grid(column=2, row=9)
-
+        
+        self.c3_var = tk.IntVar()
+        self.c3_var.set(0)
+        c3 = tk.Checkbutton(self.root, text='Choose Palette Order',variable=self.c3_var, onvalue=1, offvalue=0)
+        c3.grid(column=2, row=10)
+        
         self.process_and_save_button = tk.Button(self.root, text="Process and Save", command=self.process_and_save)
         #self.process_and_save_button.pack()
-        self.process_and_save_button.grid(column=2, row=10)
+        self.process_and_save_button.grid(column=2, row=11)
+        
+       
         
     def open_image(self):
         self.img_label3.destroy()
@@ -382,7 +474,7 @@ class GUI:
         self.img2 = ImageTk.PhotoImage(self.img2)
         self.img_label = tk.Label(self.root, image=self.img2,borderwidth=1, relief="solid")
         #self.img_label.pack()
-        self.img_label.grid(column=2, row=11)
+        self.img_label.grid(column=2, row=12)
         
         self.img = Image.open(self.file_path).convert("RGBA")
         
@@ -396,10 +488,10 @@ class GUI:
         
         self.img2 = ImageTk.PhotoImage(self.img2)
         self.img_label = tk.Label(self.root, image=self.img2, borderwidth=1, relief="solid")
-        self.img_label.grid(column=2, row=11)
+        self.img_label.grid(column=2, row=12)
         
         self.img_label3.destroy()
-        self.img3=process_the_data(self.img, self.file_path, self.layer_dropdown.get(), self.c1_var.get(), self.c2_var.get())
+        self.img3=process_the_data(self.img, self.file_path, self.layer_dropdown.get(), self.c1_var.get(), self.c2_var.get(),self.c3_var.get())
         width, height = self.img3.size
         
         
@@ -408,20 +500,25 @@ class GUI:
         self.img3 = ImageTk.PhotoImage(self.img3)
         self.img_label3 = tk.Label(self.root, image=self.img3, borderwidth=1, relief="solid")
         #self.img_label3.pack()
-        self.img_label3.grid(column=4, row=11)
+        self.img_label3.grid(column=4, row=12)
         
+        messagebox.showinfo("Success", "The image has been processed and files have been saved.");
         pass
+    
 
 
+def on_closing():
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            root.destroy()
+            sys.exit(0)
+            
 if __name__ == "__main__":
+    
     root = tk.Tk()
     gui = GUI(root)
+    root.protocol("WM_DELETE_WINDOW", on_closing)
     root.mainloop()
-    
-    
-
-
-# Open the PNG file
-#filename = input("Enter the filename of the PNG image: ")
+    # Close the console window
+    sys.exit(0)
 
 
